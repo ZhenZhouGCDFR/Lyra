@@ -15,7 +15,7 @@ on:
 
       build_tags:
         description: 'Go build tags'
-        required: true
+        required: false
         default: 'with_quic'
 
 jobs:
