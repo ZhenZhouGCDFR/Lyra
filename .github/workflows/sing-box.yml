@@ -92,6 +92,7 @@ jobs:
         git fetch --tags
         git checkout tags/${{ inputs.version }}
         git submodule update --init --recursive
+
     - name: Build Windows x64
       shell: bash
       run: |
