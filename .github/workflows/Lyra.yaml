@@ -9,11 +9,6 @@ env:
 on:
   workflow_dispatch:
     inputs:
-      lz4_enable:
-        description: '是否安装 lz4 1.10.0+zstd 1.5.7 补丁及 LZ4KD 补丁'
-        required: true
-        type: boolean
-        default: 'true'
       bbr_enable:
         description: '是否启用bbr算法(优化上行数据,对手机日用无太大意义甚至可能负优化;false关闭,true仅加入算法,default设为默认)'
         required: true
@@ -23,6 +18,11 @@ on:
           - 'false'
           - 'true'
           - 'default'
+      lz4_enable:
+        description: '是否安装 lz4 1.10.0+zstd 1.5.7 补丁及 LZ4KD 补丁'
+        required: true
+        type: boolean
+        default: 'true'
       better_net:
         description: '是否开启网络功能拓展配置(用于为ipset及需要iptables等高级网络功能内核支持的程序提供支持)'
         required: true
@@ -445,7 +445,7 @@ jobs:
           TIME_FORM="$(TZ='Asia/Shanghai' date +'%Y-%m-%d %H:%M:%S')"
           echo "TIME=$TIME" >> $GITHUB_ENV
           echo "TIME_FORM=$TIME_FORM" >> $GITHUB_ENV
-          TAG_HEAD="OPPO+OPlus+Realme-A15-build"
+          TAG_HEAD="Lyra-S-6.1.118"
           echo "TAG_HEAD=$TAG_HEAD" >> $GITHUB_ENV
 
       - name: 创建发布
@@ -468,3 +468,4 @@ jobs:
           prerelease: false
           files: |
             release_zips/AnyKernel3_*.zip
+
