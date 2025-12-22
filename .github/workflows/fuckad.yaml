@@ -5,15 +5,15 @@ on:
     inputs:
       singbox_version:
         description: 'Sing-box version to use'
-        required: true
+        required: false
         default: '1.12.13'
       rule_url:
         description: 'URL of sing-box JSON rule'
-        required: true
+        required: false
         default: 'https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Singbox.json'
       output_name:
         description: 'Output SRS file name'
-        required: true
+        required: false
         default: 'fuckad.srs'
 
   schedule:
@@ -30,6 +30,7 @@ jobs:
       - name: Setup sing-box (cache by version)
         run: |
           set -e
+          mkdir -p rule
           VERSION=${{ github.event.inputs.singbox_version }}
           VERSION_FILE="rule/.singbox_version"
           mkdir -p rule
@@ -48,7 +49,6 @@ jobs:
       - name: Compile rule-set to SRS
         run: |
           set -e
-          mkdir -p rule
           RULE_URL=${{ github.event.inputs.rule_url }}
           OUTPUT_NAME=${{ github.event.inputs.output_name }}
           TEMP_JSON=temp_fuckad.json
