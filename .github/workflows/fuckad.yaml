@@ -15,6 +15,9 @@ on:
       output_name:
         required: true
         default: 'fuckad.srs'
+      output_dir:
+        required: false
+        default: 'lib'
   schedule:
     - cron: '0 22 * * *'
 
@@ -50,23 +53,33 @@ jobs:
         run: |
           set -e
           cd "$GITHUB_WORKSPACE"
-          mkdir -p lib
+
           RULE_URL=${{ github.event.inputs.rule_url }}
           OUTPUT_NAME=${{ github.event.inputs.output_name }}
-          TEMP_JSON=lib/temp_fuckad.json
+          OUTPUT_DIR=${{ github.event.inputs.output_dir }}
+
+          mkdir -p "$OUTPUT_DIR"
+
+          TEMP_JSON="$OUTPUT_DIR/temp_${OUTPUT_NAME%.srs}.json"
+
           curl -L -o "$TEMP_JSON" "$RULE_URL"
-          sing-box rule-set compile "$TEMP_JSON" -o "lib/$OUTPUT_NAME"
+          sing-box rule-set compile "$TEMP_JSON" -o "$OUTPUT_DIR/$OUTPUT_NAME"
           rm -f "$TEMP_JSON"
 
       - name: Commit result
         run: |
           set -e
           cd "$GITHUB_WORKSPACE"
+
           OUTPUT_NAME=${{ github.event.inputs.output_name }}
+          OUTPUT_DIR=${{ github.event.inputs.output_dir }}
+
           git config user.name github-actions
           git config user.email actions@github.com
-          git add "rule/$OUTPUT_NAME"
+          git add "$OUTPUT_DIR/$OUTPUT_NAME"
+
           if ! git diff --cached --quiet; then
-            git commit -m "build: update $OUTPUT_NAME"m
+            git commit -m "build: update $OUTPUT_NAME (sing-box v${{ github.event.inputs.singbox_version }})"
             git push
           fi
+
