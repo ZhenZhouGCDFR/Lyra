@@ -1,4 +1,4 @@
-name: Build sing-box (rules.srs)
+name: Build sing-box ( rules.srs )
 
 on:
   workflow_dispatch:
@@ -27,8 +27,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup sing-box (cache by version)
+      - name: Setup sing-box
         run: |
+          set -e
           VERSION=${{ github.event.inputs.singbox_version }}
           VERSION_FILE="rule/.singbox_version"
           mkdir -p rule
@@ -46,6 +47,7 @@ jobs:
 
       - name: Compile rule-set to SRS
         run: |
+          set -e
           mkdir -p rule
           RULE_URL=${{ github.event.inputs.rule_url }}
           OUTPUT_NAME=${{ github.event.inputs.output_name }}
@@ -55,9 +57,12 @@ jobs:
           echo "Compiling $TEMP_JSON to rule/$OUTPUT_NAME ..."
           sing-box rule-set compile $TEMP_JSON -o "rule/$OUTPUT_NAME"
           rm $TEMP_JSON
+          echo "Compiled successfully. Contents of rule/:"
+          ls -l rule/
 
       - name: Commit generated SRS if changed
         run: |
+          set -e
           OUTPUT_NAME=${{ github.event.inputs.output_name }}
           git config user.name "github-actions"
           git config user.email "actions@github.com"
@@ -67,3 +72,4 @@ jobs:
             git push
           else
             echo "No changes detected in $OUTPUT_NAME, skipping commit."
+
