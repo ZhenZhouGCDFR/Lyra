@@ -79,7 +79,7 @@ jobs:
           git add "$OUTPUT_DIR/$OUTPUT_NAME"
 
           if ! git diff --cached --quiet; then
-            git commit -m "build: update $OUTPUT_NAME (sing-box v${{ github.event.inputs.singbox_version }})"
+            git commit -m "build: update $OUTPUT_NAME"
             git push
           fi
 
