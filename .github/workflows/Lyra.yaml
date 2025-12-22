@@ -11,7 +11,7 @@ on:
     inputs:
       bbr_enable:
         description: 'Enable BBR algorithm'
-        required: true
+        required: false
         type: choice
         default: 'false'
         options:
@@ -419,3 +419,4 @@ jobs:
           prerelease: false
           files: |
             release_zips/AnyKernel3_*.zip
+
