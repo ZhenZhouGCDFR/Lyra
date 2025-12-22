@@ -1,4 +1,4 @@
-name: sing-box fuckad srs
+name: Build (sing-box SRS)
 
 on:
   workflow_dispatch:
@@ -55,3 +55,15 @@ jobs:
           echo "Compiling $TEMP_JSON to rule/$OUTPUT_NAME ..."
           sing-box rule-set compile $TEMP_JSON -o "rule/$OUTPUT_NAME"
           rm $TEMP_JSON
+
+      - name: Commit generated SRS if changed
+        run: |
+          OUTPUT_NAME=${{ github.event.inputs.output_name }}
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add "rule/$OUTPUT_NAME"
+          if ! git diff --cached --quiet; then
+            git commit -m "build: update $OUTPUT_NAME (sing-box v${{ github.event.inputs.singbox_version }})"
+            git push
+          else
+            echo "No changes detected in $OUTPUT_NAME, skipping commit."
