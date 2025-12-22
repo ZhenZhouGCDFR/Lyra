@@ -11,7 +11,7 @@ on:
       go_version:
         description: 'Go version'
         required: true
-        default: '1.25.0'
+        default: '1.25.5'
 
       build_tags:
         description: 'Go build tags'
