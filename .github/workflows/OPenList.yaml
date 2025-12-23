@@ -1,10 +1,10 @@
-name: Build OpenList (Android arm64 + Windows x64 + Frontend)
+name: Build OPenList (Android arm64 + Windows x64 + Frontend)
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'OpenList git tag version'
+        description: 'OPenList git tag version'
         required: true
         default: 'v4.1.8'
       go_version:
@@ -29,7 +29,7 @@ jobs:
         run: |
           curl -L https://dl.google.com/android/repository/android-ndk-r26d-linux.zip -o ndk.zip
           unzip -q ndk.zip
-      - name: Clone OpenList
+      - name: Clone OPenList
         run: |
           git clone https://github.com/OpenListTeam/OpenList.git
           cd OpenList
@@ -75,7 +75,7 @@ jobs:
         run: |
           curl -L https://github.com/mstorsjo/llvm-mingw/releases/download/20240320/llvm-mingw-20240320-msvcrt-x86_64.zip -o llvm-mingw.zip
           unzip -q llvm-mingw.zip -d llvm-mingw
-      - name: Clone OpenList
+      - name: Clone OPenList
         shell: bash
         run: |
           git clone https://github.com/OpenListTeam/OpenList.git
@@ -117,11 +117,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20'
-      - name: Clone OpenList Frontend
+      - name: Clone OPenList Frontend
         run: |
           git clone https://github.com/OpenListTeam/OpenList-Frontend.git
           cd OpenList-Frontend
-          git fetch
           git checkout main
       - name: Build Frontend
         run: |
