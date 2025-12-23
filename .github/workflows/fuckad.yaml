@@ -28,25 +28,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Prepare variables (schedule-safe)
+        id: vars
+        run: |
+          VERSION="${{ github.event.inputs.singbox_version }}"
+          RULE_URL="${{ github.event.inputs.rule_url }}"
+          OUTPUT_NAME="${{ github.event.inputs.output_name }}"
+          OUTPUT_DIR="${{ github.event.inputs.output_dir }}"
+
+          VERSION="${VERSION:-1.12.13}"
+          RULE_URL="${RULE_URL:-https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Singbox.json}"
+          OUTPUT_NAME="${OUTPUT_NAME:-fuckad.srs}"
+          OUTPUT_DIR="${OUTPUT_DIR:-lib}"
+
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "RULE_URL=$RULE_URL" >> $GITHUB_ENV
+          echo "OUTPUT_NAME=$OUTPUT_NAME" >> $GITHUB_ENV
+          echo "OUTPUT_DIR=$OUTPUT_DIR" >> $GITHUB_ENV
+
       - name: Cache sing-box
         uses: actions/cache@v4
         with:
           path: ~/.cache/sing-box
-          key: sing-box-${{ github.event.inputs.singbox_version }}
+          key: sing-box-${{ env.VERSION }}
 
       - name: Setup sing-box
         run: |
           set -e
-          VERSION=${{ github.event.inputs.singbox_version }}
-          BIN_DIR=$HOME/.cache/sing-box/$VERSION
-          BIN_PATH=$BIN_DIR/sing-box
+
+          BIN_DIR="$HOME/.cache/sing-box/$VERSION"
+          BIN_PATH="$BIN_DIR/sing-box"
+
           if [ ! -x "$BIN_PATH" ]; then
             mkdir -p "$BIN_DIR"
-            curl -L -o sing-box.tar.gz https://github.com/SagerNet/sing-box/releases/download/v${VERSION}/sing-box-${VERSION}-linux-amd64.tar.gz
+            curl -fL -o sing-box.tar.gz \
+              https://github.com/SagerNet/sing-box/releases/download/v${VERSION}/sing-box-${VERSION}-linux-amd64.tar.gz
             tar -xzf sing-box.tar.gz
             mv sing-box-${VERSION}-linux-amd64/sing-box "$BIN_PATH"
             chmod +x "$BIN_PATH"
           fi
+
           sudo ln -sf "$BIN_PATH" /usr/local/bin/sing-box
 
       - name: Compile rule-set
@@ -54,15 +75,10 @@ jobs:
           set -e
           cd "$GITHUB_WORKSPACE"
 
-          RULE_URL=${{ github.event.inputs.rule_url }}
-          OUTPUT_NAME=${{ github.event.inputs.output_name }}
-          OUTPUT_DIR=${{ github.event.inputs.output_dir }}
-
           mkdir -p "$OUTPUT_DIR"
-
           TEMP_JSON="$OUTPUT_DIR/temp_${OUTPUT_NAME%.srs}.json"
 
-          curl -L -o "$TEMP_JSON" "$RULE_URL"
+          curl -fL -o "$TEMP_JSON" "$RULE_URL"
           sing-box rule-set compile "$TEMP_JSON" -o "$OUTPUT_DIR/$OUTPUT_NAME"
           rm -f "$TEMP_JSON"
 
@@ -70,9 +86,6 @@ jobs:
         run: |
           set -e
           cd "$GITHUB_WORKSPACE"
-
-          OUTPUT_NAME=${{ github.event.inputs.output_name }}
-          OUTPUT_DIR=${{ github.event.inputs.output_dir }}
 
           git config user.name github-actions
           git config user.email actions@github.com
@@ -82,4 +95,3 @@ jobs:
             git commit -m "build: update $OUTPUT_NAME"
             git push
           fi
-
