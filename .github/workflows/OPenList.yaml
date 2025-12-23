@@ -7,7 +7,6 @@ on:
         description: 'OpenList git tag version'
         required: true
         default: 'v4.1.8'
-
       go_version:
         description: 'Go version'
         required: true
@@ -114,25 +113,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - name: Install Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
-
       - name: Clone OpenList Frontend
         run: |
           git clone https://github.com/OpenListTeam/OpenList-Frontend.git
           cd OpenList-Frontend
           git fetch
           git checkout main
-
       - name: Build Frontend
         run: |
           cd OpenList-Frontend
-          npm install --legacy-peer-deps
-          npm run build -- --release --lite --compress --skip-i18n
-
+          chmod +x build.sh
+          ./build.sh --release --lite --compress --skip-i18n
       - uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
