@@ -1,12 +1,13 @@
-name: Build OPenList (Android arm64 + Windows x64 + Frontend)
+name: Build OpenList (Android arm64 + Windows x64 + Frontend)
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'OPenList git tag version'
+        description: 'OpenList git tag version'
         required: true
         default: 'v4.1.8'
+
       go_version:
         description: 'Go version'
         required: true
@@ -15,6 +16,7 @@ on:
 jobs:
   android:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -28,7 +30,7 @@ jobs:
         run: |
           curl -L https://dl.google.com/android/repository/android-ndk-r26d-linux.zip -o ndk.zip
           unzip -q ndk.zip
-      - name: Clone OPenList
+      - name: Clone OpenList
         run: |
           git clone https://github.com/OpenListTeam/OpenList.git
           cd OpenList
@@ -63,6 +65,7 @@ jobs:
 
   windows:
     runs-on: windows-latest
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -73,7 +76,7 @@ jobs:
         run: |
           curl -L https://github.com/mstorsjo/llvm-mingw/releases/download/20240320/llvm-mingw-20240320-msvcrt-x86_64.zip -o llvm-mingw.zip
           unzip -q llvm-mingw.zip -d llvm-mingw
-      - name: Clone OPenList
+      - name: Clone OpenList
         shell: bash
         run: |
           git clone https://github.com/OpenListTeam/OpenList.git
@@ -108,23 +111,28 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - name: Install Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
-      - name: Clone OPenList Frontend
+
+      - name: Clone OpenList Frontend
         run: |
           git clone https://github.com/OpenListTeam/OpenList-Frontend.git
           cd OpenList-Frontend
-          git fetch --tags
+          git fetch
           git checkout main
+
       - name: Build Frontend
         run: |
           cd OpenList-Frontend
-          chmod +x build.sh
-          ./build.sh --release --lite --compress --skip-i18n
+          npm install --legacy-peer-deps
+          npm run build -- --release --lite --compress --skip-i18n
+
       - uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
