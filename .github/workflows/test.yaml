@@ -1,0 +1,83 @@
+name: Build sing-box Android APK (arm64-v8a, unsigned)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'sing-box Android GUI version'
+        required: true
+        default: 'v1.12.13'
+      go_version:
+        description: 'Go version for native libs'
+        required: true
+        default: '1.25.5'
+
+jobs:
+  android-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # 安装 JDK + Android SDK
+    - name: Install JDK & Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        sdk-tools-version: "9477386"
+        java-version: "17"
+
+    # 安装 Go
+    - uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go_version }}
+
+    # 安装 Android NDK
+    - name: Setup Android NDK
+      run: |
+        curl -L https://dl.google.com/android/repository/android-ndk-r26d-linux.zip -o ndk.zip
+        unzip -q ndk.zip
+
+    # 克隆 Android GUI 项目
+    - name: Clone sing-box Android GUI repo
+      run: |
+        git clone https://github.com/SagerNet/sing-box-android.git
+        cd sing-box-android
+        git fetch --tags
+        git checkout tags/${{ inputs.version }}
+
+    # 编译 Go 原生库（arm64-v8a）
+    - name: Build sing-box native lib for Android arm64
+      shell: bash
+      run: |
+        set -euo pipefail
+        NDK="$GITHUB_WORKSPACE/android-ndk-r26d"
+        TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+        export GOOS=android
+        export GOARCH=arm64
+        export CGO_ENABLED=1
+        export CC="$TOOLCHAIN/aarch64-linux-android21-clang"
+        export CXX="$TOOLCHAIN/aarch64-linux-android21-clang++"
+        export AR="$TOOLCHAIN/llvm-ar"
+        export LD="$TOOLCHAIN/ld.lld"
+        export CGO_CFLAGS="-O3 -march=armv8-a+crypto -funroll-loops -flto -fomit-frame-pointer -ffast-math -fPIC -falign-functions=128 -fno-unwind-tables -fno-asynchronous-unwind-tables -ffunction-sections -fdata-sections"
+        export CGO_LDFLAGS="-flto -ldl -Wl,-O1 -Wl,--gc-sections -Wl,--icf=safe -Wl,-z,max-page-size=0x1000"
+        cd sing-box-android/sing-box
+        mkdir -p ../jniLibs/arm64-v8a
+        go build -tags with_quic -trimpath -ldflags "-s -w" -o ../jniLibs/arm64-v8a/libsingbox.so
+        "$TOOLCHAIN/llvm-strip" ../jniLibs/arm64-v8a/libsingbox.so
+
+    # 打包 APK（arm64-v8a）
+    - name: Build unsigned APK (arm64-v8a only)
+      working-directory: sing-box-android
+      run: |
+        chmod +x gradlew
+        ./gradlew assembleRelease -PabiFilters="arm64-v8a" -Pandroid.injected.signing.store.file= -Pandroid.injected.signing.store.password= -Pandroid.injected.signing.key.alias= -Pandroid.injected.signing.key.password=
+        # 重命名 APK
+        mv app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/sing-box-arm64-v8a.apk
+
+    # 上传 APK artifact
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-arm64-v8a-unsigned-apk
+        path: sing-box-android/app/build/outputs/apk/release/sing-box-arm64-v8a.apk
