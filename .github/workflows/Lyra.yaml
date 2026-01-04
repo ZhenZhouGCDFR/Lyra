@@ -29,7 +29,7 @@ on:
         type: boolean
         default: 'true'
       ssg_enable:
-        description: 'Enable Samsung SSG IO scheduler support'
+        description: 'Enable Samsung SSG IO scheduler'
         required: true
         type: boolean
         default: 'true'
@@ -133,7 +133,7 @@ jobs:
             ccache -sv
           fi
 
-      - name: Apply lz4 1.10.0 & zstd 1.5.7 & Unicode_bypass_Fix patches
+      - name: Apply lz4 1.10.0 & zstd 1.5.7 patches
         if: inputs.lz4_enable
         run: |
           cd kernel_workspace
@@ -141,13 +141,20 @@ jobs:
           cp ./oppo_oplus_realme_sm8650/zram_patch/001-lz4.patch ./common/
           cp ./oppo_oplus_realme_sm8650/zram_patch/lz4armv8.S ./common/lib
           cp ./oppo_oplus_realme_sm8650/zram_patch/002-zstd.patch ./common/
-          git clone https://github.com/ITxiao6666/Unicode_bypass_Fix.git
-          cp ./Unicode_bypass_Fix/unicode_bypass_fix_5.10-6.1.patch ./common/
           cd ./common
           git apply -p1 < 001-lz4.patch || true
           patch -p1 < 002-zstd.patch || true
-          patch -p1 < unicode_bypass_fix_5.10-6.1.patch || true
 
+      - name: Apply UNICODE_BYPASS and MEMORY_OPT
+        if: inputs.lz4_enable
+        run: |
+          PATCH_DIR="${GITHUB_WORKSPACE}/lib"
+          cd kernel_workspace
+          patch -p1 --forward < "${PATCH_DIR}/optimized_mem_operations.patch"
+          patch -p1 --forward < "${PATCH_DIR}/file_struct_8bytes_align.patch"
+          patch -p1 --forward < "${PATCH_DIR}/reduce_cache_pressure.patch"
+          cat "${PATCH_DIR}/clear_page_16bytes_align.patch" | sed -e 's/SYM_FUNC_START_PI(clear_page)/SYM_FUNC_START_PI(__pi_clear_page)/' | patch -p1 -F3 --forward
+          curl -LSs "https://github.com/IPulsarS/GKI_KernelSU_SUSFS/raw/refs/heads/dev/5495b94.patch" | patch -p1 --forward
 
       - name: Enable enhanced network configuration
         if: inputs.better_net
@@ -277,11 +284,7 @@ jobs:
           echo "Compiler info:"
           echo "Clang version: $CLANG_VERSION"
           echo "LLD version: $LLD_VERSION"
-
-          export KCFLAGS="-O3 -march=armv8-a+crypto -fno-strict-aliasing -fno-common -funroll-loops -fomit-frame-pointer -falign-functions=128 -fno-unwind-tables -fno-asynchronous-unwind-tables -ffunction-sections -fdata-sections"
-          export LDFLAGS="-Wl,-O1 -Wl,--gc-sections -Wl,-z,max-page-size=0x1000"
-          echo "KCFLAGS=$KCFLAGS" >> $GITHUB_ENV
-          echo "LDFLAGS=$LDFLAGS" >> $GITHUB_ENV
+          pahole_version=$(pahole --version 2>/dev/null | head -n1); [ -z "$pahole_version" ] && echo "pahole version: not installed" || echo "pahole version: $pahole_version"
 
           export CCACHE_LOGFILE="${{ github.workspace }}/kernel_workspace/ccache.log"
           export CCACHE_COMPILERCHECK="none"
@@ -293,47 +296,58 @@ jobs:
           echo "sloppiness = file_stat_matches,include_file_ctime,include_file_mtime,pch_defines,file_macro,time_macros" >> "$CCACHE_DIR/ccache.conf"
 
           cd kernel_workspace/common
-          wget -q https://github.com/cctv18/oppo_oplus_realme_sm8650/raw/refs/heads/main/lib/libfakestat.so
-          wget -q https://github.com/cctv18/oppo_oplus_realme_sm8650/raw/refs/heads/main/lib/libfaketimeMT.so
+          wget https://github.com/cctv18/oppo_oplus_realme_sm8650/raw/refs/heads/main/lib/libfakestat.so
+          wget https://github.com/cctv18/oppo_oplus_realme_sm8650/raw/refs/heads/main/lib/libfaketimeMT.so
           chmod 777 ./*.so
-
           export FAKESTAT="2025-05-25 12:00:00"
           export FAKETIME="@2025-05-25 13:00:00"
           echo "FAKESTAT=$FAKESTAT" >> $GITHUB_ENV
           echo "FAKETIME=$FAKETIME" >> $GITHUB_ENV
           SO_DIR=$(pwd)
           export PRELOAD_LIBS="$SO_DIR/libfakestat.so $SO_DIR/libfaketimeMT.so"
-
           echo '#!/bin/bash' > cc-wrapper
           echo 'export LD_PRELOAD="'$PRELOAD_LIBS'"' >> cc-wrapper
           echo 'export FAKESTAT="'$FAKESTAT'"' >> cc-wrapper
           echo 'export FAKETIME="'$FAKETIME'"' >> cc-wrapper
           echo 'ccache clang "$@"' >> cc-wrapper
-
           echo '#!/bin/bash' > ld-wrapper
           echo 'export LD_PRELOAD="'$PRELOAD_LIBS'"' >> ld-wrapper
           echo 'export FAKESTAT="'$FAKESTAT'"' >> ld-wrapper
           echo 'export FAKETIME="'$FAKETIME'"' >> ld-wrapper
           echo 'ld.lld "$@"' >> ld-wrapper
-
+          echo "--- [Wrapper Test] Creating general time hijack test script ---"
+          echo '#!/bin/bash' > test-wrapper.sh
+          echo 'export LD_PRELOAD="'$PRELOAD_LIBS'"' >> test-wrapper.sh
+          echo 'export FAKESTAT="'$FAKESTAT'"' >> test-wrapper.sh
+          echo 'export FAKETIME="'$FAKETIME'"' >> test-wrapper.sh
+          echo 'echo ">>> Wrapper environment check complete."' >> test-wrapper.sh
+          echo 'exec "$@"' >> test-wrapper.sh
+          chmod +x test-wrapper.sh
+          echo "--- [Wrapper Test] Testing (date) command ---"
+          ./test-wrapper.sh date
+          echo "--- [Wrapper Test] Testing (stat) command ---"
+          ./test-wrapper.sh stat ./Makefile
+          echo "--- [Wrapper Test] Completed ---"
           chmod +x cc-wrapper ld-wrapper
+          echo "--- Pre-build environment time: $(LD_PRELOAD=$PRELOAD_LIBS date) ---"
+          echo "--- Pre-build file timestamps: ---"
+          LD_PRELOAD=$PRELOAD_LIBS stat ./Makefile
 
-          echo "--- [Wrapper Test] ---"
-          ./cc-wrapper --version
-          ./ld-wrapper --version
+          sudo rm -rf /usr/share/dotnet &
+          sudo rm -rf /usr/local/lib/android &
+          sudo rm -rf /opt/ghc &
+          sudo rm -rf /opt/hostedtoolcache/CodeQL &
+          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="ccache clang" LD="ld.lld" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error gki_defconfig &&
+          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="$(pwd)/cc-wrapper" LD="$(pwd)/ld-wrapper" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error Image
 
-          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
-            CC="$(pwd)/cc-wrapper" LD="$(pwd)/ld-wrapper" HOSTLD=ld.lld O=out \
-            KCFLAGS+="$KCFLAGS" KCFLAGS+=-Wno-error LDFLAGS+="$LDFLAGS" gki_defconfig
-
-          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- \
-            CC="$(pwd)/cc-wrapper" LD="$(pwd)/ld-wrapper" HOSTLD=ld.lld O=out \
-            KCFLAGS+="$KCFLAGS" KCFLAGS+=-Wno-error LDFLAGS+="$LDFLAGS" Image
-
+          echo "--- Post-build environment time: $(LD_PRELOAD=$PRELOAD_LIBS date) ---"
+          echo "--- Post-build file timestamps: ---"
+          LD_PRELOAD=$PRELOAD_LIBS stat ./Makefile
           echo "Kernel build completed!"
+          echo "ccache status:"
           ccache -s
+          echo "Disk usage after build:"
           df -h
-
 
       - name: Clone AnyKernel3 and package
         run: |
@@ -416,4 +430,3 @@ jobs:
           prerelease: false
           files: |
             release_zips/AnyKernel3_*.zip
-
