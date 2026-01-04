@@ -19,17 +19,17 @@ on:
           - 'true'
           - 'default'
       lz4_enable:
-        description: 'Install lz4 1.10.0 + zstd 1.5.7 patch'
+        description: 'Install Patch'
         required: true
         type: boolean
         default: 'true'
       better_net:
-        description: 'Enable extended network configuration'
+        description: 'Enable extended configuration'
         required: true
         type: boolean
         default: 'true'
       ssg_enable:
-        description: 'Enable Samsung SSG IO scheduler support'
+        description: 'Enable Samsung SSG IO scheduler'
         required: true
         type: boolean
         default: 'true'
@@ -144,6 +144,16 @@ jobs:
           cd ./common
           git apply -p1 < 001-lz4.patch || true
           patch -p1 < 002-zstd.patch || true
+
+      - name: Apply UNICODE_BYPASS and MEMORY_OPT
+        if: inputs.lz4_enable
+        run: |
+          cd kernel_workspace/common
+          curl -LSs "https://raw.githubusercontent.com/Numbersf/Action-Build/refs/heads/SukiSU-Ultra/patches/optimized_mem_operations.patch" | patch -p1 --forward
+          curl -LSs "https://raw.githubusercontent.com/Numbersf/Action-Build/refs/heads/SukiSU-Ultra/patches/file_struct_8bytes_align.patch" | patch -p1 --forward
+          curl -LSs "https://raw.githubusercontent.com/Numbersf/Action-Build/refs/heads/SukiSU-Ultra/patches/reduce_cache_pressure.patch" | patch -p1 --forward
+          curl -LSs "https://raw.githubusercontent.com/Numbersf/Action-Build/refs/heads/SukiSU-Ultra/patches/clear_page_16bytes_align.patch" | sed -e 's/SYM_FUNC_START_PI(clear_page)/SYM_FUNC_START_PI(__pi_clear_page)/' | patch -p1 -F3 --forward
+          curl -LSs "https://github.com/IPulsarS/GKI_KernelSU_SUSFS/raw/refs/heads/dev/5495b94.patch" | patch -p1 --forward
 
       - name: Enable enhanced network configuration
         if: inputs.better_net
@@ -419,4 +429,5 @@ jobs:
           prerelease: false
           files: |
             release_zips/AnyKernel3_*.zip
+
 

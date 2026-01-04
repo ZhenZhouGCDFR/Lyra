@@ -8,7 +8,7 @@ on:
     inputs:
       singbox_version:
         required: true
-        default: '1.12.13'
+        default: '1.12.14'
       rule_url:
         required: true
         default: 'https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Singbox.json'
@@ -36,7 +36,7 @@ jobs:
           OUTPUT_NAME="${{ github.event.inputs.output_name }}"
           OUTPUT_DIR="${{ github.event.inputs.output_dir }}"
 
-          VERSION="${VERSION:-1.12.13}"
+          VERSION="${VERSION:-1.12.14}"
           RULE_URL="${RULE_URL:-https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Singbox.json}"
           OUTPUT_NAME="${OUTPUT_NAME:-fuckad.srs}"
           OUTPUT_DIR="${OUTPUT_DIR:-lib}"
