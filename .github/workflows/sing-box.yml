@@ -61,7 +61,7 @@ jobs:
         export CGO_LDFLAGS="-flto -ldl -Wl,-O1 -Wl,--gc-sections -Wl,--icf=safe -Wl,-z,max-page-size=0x1000"
         cd sing-box/cmd/sing-box
         echo "Building sing-box ${{ inputs.version }} with tags: ${{ inputs.build_tags }}"
-        go build -tags ${{ inputs.build_tags }} -trimpath -ldflags "-s -w" -o sing-box-android-arm64
+        go build -tags "${{ inputs.build_tags }}" -trimpath -ldflags "-s -w" -o sing-box-android-arm64
         "$TOOLCHAIN/llvm-strip" sing-box-android-arm64
         mv sing-box-android-arm64 "$GITHUB_WORKSPACE/"
     - uses: actions/upload-artifact@v4
