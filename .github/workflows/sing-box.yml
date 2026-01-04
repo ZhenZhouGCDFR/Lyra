@@ -108,7 +108,7 @@ jobs:
         export CGO_LDFLAGS="-flto -Wl,-O1 -Wl,--gc-sections -Wl,--icf=safe -Wl,-z,max-page-size=0x1000"
         cd sing-box/cmd/sing-box
         echo "Building sing-box ${{ inputs.version }} with tags: ${{ inputs.build_tags }}"
-        go build -tags ${{ inputs.build_tags }} -trimpath -ldflags "-s -w" -o sing-box-windows-x64.exe
+        go build -tags "${{ inputs.build_tags }}" -trimpath -ldflags "-s -w" -o sing-box-windows-x64.exe
         "$TOOLCHAIN/llvm-strip" sing-box-windows-x64.exe
         mv sing-box-windows-x64.exe "$GITHUB_WORKSPACE/"
     - uses: actions/upload-artifact@v4
