@@ -148,7 +148,7 @@ jobs:
       - name: Apply UNICODE_BYPASS and MEMORY_OPT
         if: inputs.lz4_enable
         run: |
-          cd kernel_workspace
+          cd kernel_workspace/common
           curl -LSs "https://raw.githubusercontent.com/Numbersf/Action-Build/refs/heads/SukiSU-Ultra/patches/optimized_mem_operations.patch" | patch -p1 --forward
           curl -LSs "https://raw.githubusercontent.com/Numbersf/Action-Build/refs/heads/SukiSU-Ultra/patches/file_struct_8bytes_align.patch" | patch -p1 --forward
           curl -LSs "https://raw.githubusercontent.com/Numbersf/Action-Build/refs/heads/SukiSU-Ultra/patches/reduce_cache_pressure.patch" | patch -p1 --forward
@@ -429,4 +429,5 @@ jobs:
           prerelease: false
           files: |
             release_zips/AnyKernel3_*.zip
+
 
