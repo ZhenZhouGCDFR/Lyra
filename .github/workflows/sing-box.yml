@@ -16,7 +16,7 @@ on:
       build_tags:
         description: 'Go build tags'
         required: false
-        default: 'with_quic'
+        default: ''
 
 jobs:
   android:
