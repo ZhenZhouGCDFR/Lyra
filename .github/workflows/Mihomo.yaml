@@ -15,10 +15,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup Go
-      uses: actions/setup-go@v5
+    - uses: actions/setup-go@v5
       with:
         go-version: ${{ inputs.go_version }}
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang llvm lld unzip curl git
 
     - name: Cache Android NDK
       uses: actions/cache@v4
@@ -49,7 +53,8 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
-        TOOLCHAIN="$HOME/.cache/android-ndk-r26d/android-ndk-r26d/toolchains/llvm/prebuilt/linux-x86_64/bin"
+        NDK="$HOME/.cache/android-ndk-r26d/android-ndk-r26d"
+        TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
         export GOOS=android
         export GOARCH=arm64
         export CGO_ENABLED=1
@@ -61,12 +66,12 @@ jobs:
         export CGO_LDFLAGS="-flto -ldl -Wl,-O1 -Wl,--gc-sections -Wl,--icf=safe -Wl,-z,max-page-size=0x1000"
         cd mihomo
         go mod download
-        go build -trimpath -ldflags "-s -w" -o "$GITHUB_WORKSPACE/mihomo-android-arm64"
+        go build -trimpath -ldflags "-s -w" -o mihomo-android-arm64
 
     - uses: actions/upload-artifact@v4
       with:
         name: android-arm64
-        path: $GITHUB_WORKSPACE/mihomo-android-arm64
+        path: mihomo-android-arm64
 
   windows:
     runs-on: windows-latest
@@ -74,8 +79,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup Go
-      uses: actions/setup-go@v5
+    - uses: actions/setup-go@v5
       with:
         go-version: ${{ inputs.go_version }}
 
@@ -122,9 +126,9 @@ jobs:
         export CGO_LDFLAGS="-flto -Wl,-O1 -Wl,--gc-sections -Wl,--icf=safe -Wl,-z,max-page-size=0x1000"
         cd mihomo
         go mod download
-        go build -trimpath -ldflags "-s -w" -o "$GITHUB_WORKSPACE/mihomo-windows-x64.exe"
+        go build -trimpath -ldflags "-s -w" -o mihomo-windows-x64.exe
 
     - uses: actions/upload-artifact@v4
       with:
         name: windows-x64
-        path: $GITHUB_WORKSPACE/mihomo-windows-x64.exe
+        path: mihomo-windows-x64.exe
