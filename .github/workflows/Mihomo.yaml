@@ -86,7 +86,7 @@ jobs:
       run: |
         git clone --recursive https://github.com/MetaCubeX/mihomo.git
         cd mihomo
-        git submodule update --init --recursive
+        go build -trimpath -ldflags "-s -w" -o mihomo-android-arm64
 
     - name: Build Windows x64
       shell: bash
