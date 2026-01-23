@@ -6,7 +6,7 @@ on:
       go_version:
         description: 'Go version'
         required: true
-        default: '1.25.5'
+        default: '1.25.6'
 
 jobs:
   android:
@@ -66,7 +66,7 @@ jobs:
         export CGO_LDFLAGS="-flto -ldl -Wl,-O1 -Wl,--gc-sections -Wl,--icf=safe -Wl,-z,max-page-size=0x1000"
         cd mihomo
         go mod download
-        go build -trimpath -ldflags "-s -w" -o "$GITHUB_WORKSPACE/mihomo-android-arm64"
+        go build -trimpath -ldflags "-s -w -X main.Version=Lyra" -o "$GITHUB_WORKSPACE/mihomo-android-arm64"
 
     - uses: actions/upload-artifact@v4
       with:
@@ -126,7 +126,7 @@ jobs:
         export CGO_LDFLAGS="-flto -Wl,-O1 -Wl,--gc-sections -Wl,--icf=safe -Wl,-z,max-page-size=0x1000"
         cd mihomo
         go mod download
-        go build -trimpath -ldflags "-s -w" -o "$GITHUB_WORKSPACE/mihomo-windows-x64.exe"
+        go build -trimpath -ldflags "-s -w -X main.Version=Lyra" -o "$GITHUB_WORKSPACE/mihomo-windows-x64.exe"
 
     - uses: actions/upload-artifact@v4
       with:
