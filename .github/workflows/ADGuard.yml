@@ -1,0 +1,60 @@
+name: Build AdGuardHome (Linux amd64 + arm64)
+
+on:
+  workflow_dispatch:
+    inputs:
+      go_version:
+        description: 'Go version'
+        required: true
+        default: '1.22.6'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go_version }}
+
+    - name: Install LLVM toolchain
+      run: sudo apt-get update && sudo apt-get install -y clang llvm lld build-essential ca-certificates
+
+    - name: Clone AdGuardHome
+      run: git clone https://github.com/AdguardTeam/AdGuardHome.git && cd AdGuardHome && git submodule update --init --recursive
+
+    - name: Build AdGuardHome (${{ matrix.arch }})
+      shell: bash
+      run: |
+        set -euo pipefail
+        export GOOS=linux
+        export GOARCH=${{ matrix.arch }}
+        export CGO_ENABLED=1
+        export CC=clang
+        export CXX=clang++
+        export LD=ld.lld
+
+        if [ "${{ matrix.arch }}" = "arm64" ]; then
+          export CGO_CFLAGS="-O3 -march=armv8-a+crypto -funroll-loops -flto -fomit-frame-pointer -ffast-math -fPIC -falign-functions=128 -fno-unwind-tables -fno-asynchronous-unwind-tables -ffunction-sections -fdata-sections"
+          export CGO_LDFLAGS="-flto -ldl -Wl,-O1 -Wl,--gc-sections -Wl,--icf=safe -Wl,-z,max-page-size=0x1000"
+        else
+          export CGO_CFLAGS="-O3 -march=x86-64-v3 -mtune=haswell -funroll-loops -flto -fomit-frame-pointer -ffast-math -fPIC -falign-functions=128 -falign-jumps=64 -falign-loops=64 -fno-unwind-tables -fno-asynchronous-unwind-tables -ffunction-sections -fdata-sections"
+          export CGO_LDFLAGS="-flto -Wl,-O1 -Wl,--gc-sections -Wl,--icf=safe -Wl,-z,max-page-size=0x1000"
+        fi
+
+        cd AdGuardHome
+        make build VERSION="Lyra"
+        cp build/AdGuardHome "$GITHUB_WORKSPACE/AdGuardHome-linux-${{ matrix.arch }}"
+
+    - name: Upload artifact (${{ matrix.arch }})
+      uses: actions/upload-artifact@v4
+      with:
+        name: AdGuardHome-linux-${{ matrix.arch }}
+        path: AdGuardHome-linux-${{ matrix.arch }}
