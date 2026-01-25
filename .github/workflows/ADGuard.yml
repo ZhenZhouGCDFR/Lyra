@@ -2,11 +2,6 @@ name: Build AdGuardHome (Linux amd64 + arm64)
 
 on:
   workflow_dispatch:
-    inputs:
-      go_version:
-        description: 'Go version'
-        required: true
-        default: '1.25.6'
 
 jobs:
   build:
@@ -19,12 +14,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Setup Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ inputs.go_version }}
-
-    - name: Install LLVM toolchain
+    - name: Install dependencies
       run: sudo apt-get update && sudo apt-get install -y clang llvm lld build-essential ca-certificates
 
     - name: Clone AdGuardHome
@@ -34,6 +24,8 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
+        cd AdGuardHome
+
         export GOOS=linux
         export GOARCH=${{ matrix.arch }}
         export CGO_ENABLED=1
@@ -49,8 +41,8 @@ jobs:
           export CGO_LDFLAGS="-flto -Wl,-O1 -Wl,--gc-sections -Wl,--icf=safe -Wl,-z,max-page-size=0x1000"
         fi
 
-        cd AdGuardHome
-        make build VERSION="Lyra"
+        make build
+
         cp build/AdGuardHome "$GITHUB_WORKSPACE/AdGuardHome-linux-${{ matrix.arch }}"
 
     - name: Upload artifact (${{ matrix.arch }})
