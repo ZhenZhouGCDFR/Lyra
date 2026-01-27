@@ -7,9 +7,13 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, ubuntu-22.04-arm64]
-        arch: [amd64, arm64]
+        include:
+          - os: ubuntu-latest
+            arch: amd64
+          - os: ubuntu-22.04-arm64
+            arch: arm64
 
     steps:
       - name: Checkout repository
@@ -18,7 +22,8 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: '1.25.6'
+          cache: false
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -26,37 +31,64 @@ jobs:
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-          key: go-modules-${{ hashFiles('**/go.sum') }}
+          key: go-${{ matrix.arch }}-${{ hashFiles('**/go.sum') }}
 
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y clang llvm lld build-essential ca-certificates
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang llvm lld \
+            build-essential \
+            ca-certificates
 
       - name: Build AdGuardHome
         shell: bash
         run: |
           set -euo pipefail
+
           mkdir -p build
           cd AdGuardHome
+
           export GOOS=linux
           export GOARCH=${{ matrix.arch }}
           export CGO_ENABLED=1
           export CC=clang
           export CXX=clang++
+          export LD=ld.lld
           export SIGN=0
 
-          if [ "${{ matrix.arch }}" = "amd64" ]; then
-            export LD=ld.lld
-            export CGO_CFLAGS="-O3 -march=x86-64-v3 -mtune=haswell -funroll-loops -flto -fomit-frame-pointer -ffast-math -fPIC -falign-functions=128 -fno-unwind-tables -fno-asynchronous-unwind-tables -ffunction-sections -fdata-sections"
-            export CGO_LDFLAGS="-flto -Wl,-O1 -Wl,--gc-sections -Wl,-z,max-page-size=0x1000 -fuse-ld=lld -Wl,--icf=safe"
+          if [ "$GOARCH" = "amd64" ]; then
+            export CGO_CFLAGS="-O3 -march=x86-64-v3 -mtune=haswell \
+              -funroll-loops -flto -fomit-frame-pointer -ffast-math \
+              -fPIC -falign-functions=128 \
+              -fno-unwind-tables -fno-asynchronous-unwind-tables \
+              -ffunction-sections -fdata-sections"
+            export CGO_LDFLAGS="-flto -fuse-ld=lld \
+              -Wl,-O1 -Wl,--gc-sections -Wl,--icf=safe \
+              -Wl,-z,max-page-size=0x1000"
           else
-            export LD=ld.lld
-            export CGO_CFLAGS="-O3 -funroll-loops -flto -fomit-frame-pointer -ffast-math -fPIC -falign-functions=128 -fno-unwind-tables -fno-asynchronous-unwind-tables -ffunction-sections -fdata-sections"
-            export CGO_LDFLAGS="-flto -ldl -Wl,-O1 -Wl,--gc-sections -Wl,-z,max-page-size=0x1000"
+            export CGO_CFLAGS="-O3 \
+              -funroll-loops -flto -fomit-frame-pointer -ffast-math \
+              -fPIC -falign-functions=128 \
+              -fno-unwind-tables -fno-asynchronous-unwind-tables \
+              -ffunction-sections -fdata-sections"
+            export CGO_LDFLAGS="-flto \
+              -Wl,-O1 -Wl,--gc-sections \
+              -Wl,-z,max-page-size=0x1000"
           fi
 
           go mod download
-          OUTPUT="../build/AdGuardHome-linux-${{ matrix.arch }}"
-          go build -trimpath -ldflags "-s -w -X main.Version=Lyra@Tkocean -extldflags='${CGO_LDFLAGS}'" -o "$OUTPUT" main.go
+
+          OUTPUT="../build/AdGuardHome-linux-${GOARCH}"
+
+          go build \
+            -trimpath \
+            -ldflags "-s -w -X main.Version=Lyra@Tkocean -extldflags='${CGO_LDFLAGS}'" \
+            -o "$OUTPUT" \
+            main.go
+
+          strip "$OUTPUT" || true
+          file "$OUTPUT"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
