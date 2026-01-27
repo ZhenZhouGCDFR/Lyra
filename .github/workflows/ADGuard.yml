@@ -5,15 +5,11 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            arch: amd64
-          - os: ubuntu-22.04-arm64
-            arch: arm64
+        arch: [amd64, arm64]
 
     steps:
       - name: Checkout workflow repository
@@ -37,7 +33,9 @@ jobs:
           key: go-${{ matrix.arch }}-${{ hashFiles('**/go.sum') }}
 
       - name: Install build dependencies
-        run: sudo apt-get update && sudo apt-get install -y clang llvm lld build-essential ca-certificates
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm lld build-essential ca-certificates gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
       - name: Build AdGuardHome
         shell: bash
@@ -47,16 +45,19 @@ jobs:
           cd AdGuardHome
 
           export GOOS=linux
-          export GOARCH=${{ matrix.arch }}
           export CGO_ENABLED=1
           export CC=clang
           export CXX=clang++
           export SIGN=0
 
-          if [ "$GOARCH" = "amd64" ]; then
+          if [ "${{ matrix.arch }}" = "amd64" ]; then
+            export GOARCH=amd64
             export CGO_CFLAGS="-O3 -march=x86-64-v3 -mtune=haswell -funroll-loops -flto -fomit-frame-pointer -ffast-math -fPIC -falign-functions=128 -fno-unwind-tables -fno-asynchronous-unwind-tables -ffunction-sections -fdata-sections"
             export CGO_LDFLAGS="-flto"
           else
+            export GOARCH=arm64
+            export CC=aarch64-linux-gnu-gcc
+            export CXX=aarch64-linux-gnu-g++
             export CGO_CFLAGS="-O3 -funroll-loops -flto -fomit-frame-pointer -ffast-math -fPIC -falign-functions=128 -fno-unwind-tables -fno-asynchronous-unwind-tables -ffunction-sections -fdata-sections"
             export CGO_LDFLAGS="-flto"
           fi
