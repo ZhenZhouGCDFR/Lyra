@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
+          git clone https://github.com/AdguardTeam/AdGuardHome.git
           mkdir -p build
           cd AdGuardHome
 
