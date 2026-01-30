@@ -192,7 +192,7 @@ jobs:
             echo "CONFIG_NET_SMALL=n"
             echo "CONFIG_INIT_ON_ALLOC_DEFAULT_ON=n"
             echo "CONFIG_INIT_ON_FREE_DEFAULT_ON=n"
-          } >> ./arch/arm64/configs/gki_defconfig
+          } >> ./common/arch/arm64/configs/gki_defconfig
           sed -i 's/check_defconfig//' ./common/build.config.gki
           echo "CONFIG_HEADERS_INSTALL=n" >> ./common/arch/arm64/configs/gki_defconfig
           cd common
@@ -438,6 +438,7 @@ jobs:
           prerelease: false
           files: |
             release_zips/AnyKernel3_*.zip
+
 
 
 
