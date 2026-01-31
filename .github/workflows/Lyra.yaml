@@ -151,9 +151,6 @@ jobs:
           cd kernel_workspace
           {
             echo "CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y"
-            echo "CONFIG_JUMP_LABEL=y"
-            echo "CONFIG_TRANSPARENT_HUGEPAGE=y"
-            echo "CONFIG_HZ_300=y"
             echo "CONFIG_BPF_STREAM_PARSER=y"
             echo "CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y"
             echo "CONFIG_NETFILTER_XT_SET=y"
@@ -177,21 +174,6 @@ jobs:
             echo "CONFIG_IP_SET_LIST_SET=y"
             echo "CONFIG_IP6_NF_NAT=y"
             echo "CONFIG_IP6_NF_TARGET_MASQUERADE=y"
-            echo "CONFIG_DEBUG_KERNEL=n"
-            echo "CONFIG_DEBUG_INFO=n"
-            echo "CONFIG_KGDB=n"
-            echo "CONFIG_KDB=n"
-            echo "CONFIG_DYNAMIC_DEBUG=n"
-            echo "CONFIG_KASAN=n"
-            echo "CONFIG_KMEMLEAK=n"
-            echo "CONFIG_UBSAN=n"
-            echo "CONFIG_DEBUG_FS=n"
-            echo "CONFIG_KPROBES=n"
-            echo "CONFIG_NO_HZ_FULL=n"
-            echo "CONFIG_CORE_SMALL=n"
-            echo "CONFIG_NET_SMALL=n"
-            echo "CONFIG_INIT_ON_ALLOC_DEFAULT_ON=n"
-            echo "CONFIG_INIT_ON_FREE_DEFAULT_ON=n"
           } >> ./common/arch/arm64/configs/gki_defconfig
           sed -i 's/check_defconfig//' ./common/build.config.gki
           echo "CONFIG_HEADERS_INSTALL=n" >> ./common/arch/arm64/configs/gki_defconfig
@@ -438,6 +420,7 @@ jobs:
           prerelease: false
           files: |
             release_zips/AnyKernel3_*.zip
+
 
 
 
