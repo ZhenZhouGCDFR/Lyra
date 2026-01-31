@@ -8,7 +8,7 @@ on:
     inputs:
       singbox_version:
         required: true
-        default: '1.12.17'
+        default: '1.12.18'
       rule_url:
         required: true
         default: 'https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Singbox.json'
